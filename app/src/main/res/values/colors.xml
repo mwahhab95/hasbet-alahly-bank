@@ -1,8 +1,0 @@
-<resources>
-    <color name="primary">#127356</color>
-    <color name="bgColor">#F4F7F6</color>
-    <color name="titleColor">#0F172A</color>
-    <color name="subtitleColor">#475569</color>
-    <color name="expenseColor">#B91C1C</color>
-    <color name="depositColor">#15803D</color>
-</resources>
