@@ -331,8 +331,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean isBankMessage(String address, String body) {
-        String a = safeLower(address);
-        String b = safeLower(body);
+    return safeLower(address).contains("bank-alahly");
+    }
 
         boolean looksLikeBankSender = a.contains(BANK_SENDER.toLowerCase(Locale.ROOT));
         boolean mentionsBank = b.contains("البنك الأهلي");
