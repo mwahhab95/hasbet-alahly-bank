@@ -331,29 +331,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean isBankMessage(String address, String body) {
-    return safeLower(address).contains("bank-alahly");
-    }
-
-        boolean looksLikeBankSender = a.contains(BANK_SENDER.toLowerCase(Locale.ROOT));
-        boolean mentionsBank = b.contains("البنك الأهلي");
-
-        boolean cardExpenseMessage =
-                b.contains("بطاقة الائتمان") && b.contains("تم خصم");
-
-        boolean instantTransferDepositMessage =
-                b.contains("بطاقتكم المنتهية") &&
-                b.contains("تحويل لحظي") &&
-                b.contains("بمبلغ");
-
-        boolean cardPaymentMessage =
-                b.contains("سداد مبلغ") &&
-                (b.contains("بطاقة رقم") || b.contains("لبطاقة رقم"));
-
-        return looksLikeBankSender
-                || mentionsBank
-                || cardExpenseMessage
-                || instantTransferDepositMessage
-                || cardPaymentMessage;
+        return safeLower(address).contains(BANK_SENDER.toLowerCase(Locale.ROOT));
     }
 
     private SmsType detectSmsType(String body) {
