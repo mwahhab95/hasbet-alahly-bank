@@ -6,27 +6,31 @@
     android:fillViewport="true">
 
     <LinearLayout
+        android:id="@+id/rootContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:paddingStart="16dp"
+        android:paddingTop="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="16dp">
 
         <TextView
             android:id="@+id/tvTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
+            android:paddingBottom="18dp"
             android:text="حاسبة البنك الأهلي"
             android:textColor="@color/titleColor"
             android:textSize="24sp"
-            android:textStyle="bold"
-            android:paddingBottom="18dp" />
+            android:textStyle="bold" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
             android:background="@drawable/card_bg"
+            android:orientation="vertical"
             android:padding="16dp">
 
             <TextView
@@ -40,8 +44,8 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
                 android:layout_marginTop="12dp"
+                android:orientation="horizontal"
                 android:weightSum="2">
 
                 <LinearLayout
@@ -127,15 +131,15 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
             android:layout_marginTop="18dp"
             android:background="@drawable/card_bg"
+            android:orientation="vertical"
             android:padding="16dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="النتائج"
+                android:text="عرض النتائج"
                 android:textColor="@color/titleColor"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -146,87 +150,58 @@
                 android:layout_marginTop="14dp"
                 android:orientation="vertical">
 
-                <LinearLayout
+                <Button
+                    android:id="@+id/btnShowDeposits"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="8dp">
+                    android:text="المبلغ اللي دخل للكارت"
+                    android:textAllCaps="false" />
 
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="إجمالي المصروف"
-                        android:textColor="@color/subtitleColor"
-                        android:textSize="17sp" />
-
-                    <TextView
-                        android:id="@+id/tvExpenses"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/expenseColor"
-                        android:textSize="22sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#E5E7EB" />
-
-                <LinearLayout
+                <Button
+                    android:id="@+id/btnShowExpenses"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="8dp">
+                    android:layout_marginTop="10dp"
+                    android:text="المبلغ اللي اتصرف من الكارت"
+                    android:textAllCaps="false" />
 
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="إجمالي المضاف للكارت"
-                        android:textColor="@color/subtitleColor"
-                        android:textSize="17sp" />
-
-                    <TextView
-                        android:id="@+id/tvDeposits"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/depositColor"
-                        android:textSize="22sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#E5E7EB" />
-
-                <LinearLayout
+                <Button
+                    android:id="@+id/btnShowAvailable"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="8dp">
+                    android:layout_marginTop="10dp"
+                    android:text="المبلغ المتاح في الكارت"
+                    android:textAllCaps="false" />
+            </LinearLayout>
 
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="الصافي"
-                        android:textColor="@color/subtitleColor"
-                        android:textSize="17sp" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/date_bg"
+                android:orientation="vertical"
+                android:padding="16dp">
 
-                    <TextView
-                        android:id="@+id/tvNet"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/titleColor"
-                        android:textSize="22sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
+                <TextView
+                    android:id="@+id/tvResultLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="اختار نوع النتيجة بعد التحليل"
+                    android:textColor="@color/subtitleColor"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvResultValue"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center"
+                    android:text="0 جم"
+                    android:textColor="@color/titleColor"
+                    android:textSize="30sp"
+                    android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
 
@@ -235,7 +210,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:gravity="center"
-            android:text="يقرأ رسائل البنك الأهلي فقط ويحسب الخصم والإضافة داخل الفترة المختارة"
+            android:text="يقرأ رسائل البنك الأهلي فقط ويحسب الخصم والإضافة داخل الفترة المختارة، ويعرض المتاح من آخر رسالة بنك موجودة"
             android:textColor="@color/subtitleColor"
             android:textSize="14sp" />
 

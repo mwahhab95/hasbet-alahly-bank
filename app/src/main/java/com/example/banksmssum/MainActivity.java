@@ -18,6 +18,9 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -37,9 +40,15 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView tvFromDate;
     private TextView tvToDate;
-    private TextView tvExpenses;
-    private TextView tvDeposits;
-    private TextView tvNet;
+    private TextView tvResultLabel;
+    private TextView tvResultValue;
+    private Button btnShowDeposits;
+    private Button btnShowExpenses;
+    private Button btnShowAvailable;
+
+    private double lastExpenses = 0.0;
+    private double lastDeposits = 0.0;
+    private Double lastAvailableBalance = null;
 
     private final SimpleDateFormat uiDateFormat = new SimpleDateFormat("dd/MM/yyyy", new Locale("ar"));
     private final DecimalFormat amountFormat;
@@ -56,11 +65,15 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
+        setupInsets();
+
         tvFromDate = findViewById(R.id.tvFromDate);
         tvToDate = findViewById(R.id.tvToDate);
-        tvExpenses = findViewById(R.id.tvExpenses);
-        tvDeposits = findViewById(R.id.tvDeposits);
-        tvNet = findViewById(R.id.tvNet);
+        tvResultLabel = findViewById(R.id.tvResultLabel);
+        tvResultValue = findViewById(R.id.tvResultValue);
+        btnShowDeposits = findViewById(R.id.btnShowDeposits);
+        btnShowExpenses = findViewById(R.id.btnShowExpenses);
+        btnShowAvailable = findViewById(R.id.btnShowAvailable);
 
         Button btnPickFrom = findViewById(R.id.btnPickFrom);
         Button btnPickTo = findViewById(R.id.btnPickTo);
@@ -80,9 +93,26 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        btnShowDeposits.setOnClickListener(v -> showResult(ResultType.DEPOSITS));
+        btnShowExpenses.setOnClickListener(v -> showResult(ResultType.EXPENSES));
+        btnShowAvailable.setOnClickListener(v -> showResult(ResultType.AVAILABLE));
+
         if (!hasSmsPermission()) {
             requestSmsPermission();
         }
+    }
+
+    private void setupInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.rootContainer), (view, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            view.setPadding(
+                    view.getPaddingLeft(),
+                    16 + insets.top,
+                    view.getPaddingRight(),
+                    16 + insets.bottom
+            );
+            return windowInsets;
+        });
     }
 
     private void initDefaultDates() {
@@ -202,7 +232,10 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-            updateResults(expenses, deposits);
+            lastExpenses = expenses;
+            lastDeposits = deposits;
+            lastAvailableBalance = findLatestAvailableBalance();
+            showResult(ResultType.DEPOSITS);
         } catch (SecurityException ex) {
             Toast.makeText(this, "مفيش صلاحية كافية لقراءة الرسائل", Toast.LENGTH_LONG).show();
         } catch (Exception ex) {
@@ -210,11 +243,44 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private Double findLatestAvailableBalance() {
+        Uri uri = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
+                ? Telephony.Sms.Inbox.CONTENT_URI
+                : Uri.parse("content://sms/inbox");
+
+        String[] projection = new String[]{"address", "body", "date"};
+
+        try (Cursor cursor = getContentResolver().query(uri, projection, null, null, "date DESC")) {
+            if (cursor == null) {
+                return null;
+            }
+
+            int addressIndex = cursor.getColumnIndex("address");
+            int bodyIndex = cursor.getColumnIndex("body");
+
+            while (cursor.moveToNext()) {
+                String address = addressIndex >= 0 ? cursor.getString(addressIndex) : "";
+                String body = bodyIndex >= 0 ? cursor.getString(bodyIndex) : "";
+
+                if (!isBankMessage(address, body)) continue;
+
+                Double available = extractAvailableAmount(body);
+                if (available != null && available >= 0) {
+                    return available;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        return null;
+    }
+
     private boolean isBankMessage(String address, String body) {
         String a = safeLower(address);
         String b = safeLower(body);
-        return a.contains(BANK_SENDER.toLowerCase(Locale.ROOT)) ||
-                (b.contains("بطاقة الائتمان") && (b.contains("تم خصم") || b.contains("تم إضافة")));
+        return a.contains(BANK_SENDER.toLowerCase(Locale.ROOT))
+                || b.contains("البنك الأهلي")
+                || (b.contains("بطاقة الائتمان") && (b.contains("تم خصم") || b.contains("تم إضافة") || b.contains("تم اضافة")));
     }
 
     private SmsType detectSmsType(String body) {
@@ -240,7 +306,8 @@ public class MainActivity extends AppCompatActivity {
         Pattern expensePattern = Pattern.compile("تم\\s*خصم\\s*([0-9]+(?:\\.[0-9]+)?)\\s*جم");
         Pattern depositPattern1 = Pattern.compile("بمبلغ\\s*([0-9]+(?:\\.[0-9]+)?)\\s*جم");
         Pattern depositPattern2 = Pattern.compile("تم\\s*إضافة\\s*([0-9]+(?:\\.[0-9]+)?)\\s*جم");
-        Pattern genericAfterAction = Pattern.compile("(?:تم\\s*خصم|تم\\s*إضافة|بمبلغ)\\s*([0-9]+(?:\\.[0-9]+)?)");
+        Pattern depositPattern3 = Pattern.compile("تم\\s*اضافة\\s*([0-9]+(?:\\.[0-9]+)?)\\s*جم");
+        Pattern genericAfterAction = Pattern.compile("(?:تم\\s*خصم|تم\\s*إضافة|تم\\s*اضافة|بمبلغ)\\s*([0-9]+(?:\\.[0-9]+)?)");
 
         Matcher m;
         if (type == SmsType.EXPENSE) {
@@ -251,12 +318,35 @@ public class MainActivity extends AppCompatActivity {
             if (m.find()) return parseDoubleSafely(m.group(1));
             m = depositPattern2.matcher(normalized);
             if (m.find()) return parseDoubleSafely(m.group(1));
+            m = depositPattern3.matcher(normalized);
+            if (m.find()) return parseDoubleSafely(m.group(1));
         }
 
         m = genericAfterAction.matcher(normalized);
         if (m.find()) return parseDoubleSafely(m.group(1));
 
         return 0.0;
+    }
+
+    private Double extractAvailableAmount(String body) {
+        if (TextUtils.isEmpty(body)) return null;
+
+        String normalized = normalizeArabicDigits(body).replace(",", "");
+        Pattern[] patterns = new Pattern[]{
+                Pattern.compile("(?:المتاح|الحد\\s*المتاح|الرصيد\\s*المتاح)[^0-9]{0,20}([0-9]+(?:\\.[0-9]+)?)\\s*جم"),
+                Pattern.compile("(?:اصبح|أصبح)[^0-9]{0,20}(?:المتاح|الحد\\s*المتاح|الرصيد\\s*المتاح)[^0-9]{0,20}([0-9]+(?:\\.[0-9]+)?)\\s*جم"),
+                Pattern.compile("([0-9]+(?:\\.[0-9]+)?)\\s*جم[^\\n]{0,20}(?:متاح|المتاح)"),
+                Pattern.compile("(?:available|balance)[^0-9]{0,20}([0-9]+(?:\\.[0-9]+)?)", Pattern.CASE_INSENSITIVE)
+        };
+
+        for (Pattern pattern : patterns) {
+            Matcher matcher = pattern.matcher(normalized);
+            if (matcher.find()) {
+                return parseDoubleSafely(matcher.group(1));
+            }
+        }
+
+        return null;
     }
 
     private double parseDoubleSafely(String value) {
@@ -281,19 +371,67 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void resetResults() {
-        updateResults(0.0, 0.0);
+        lastExpenses = 0.0;
+        lastDeposits = 0.0;
+        lastAvailableBalance = null;
+        showResult(ResultType.DEPOSITS);
     }
 
-    private void updateResults(double expenses, double deposits) {
-        double net = deposits - expenses;
-        tvExpenses.setText(amountFormat.format(expenses) + " جم");
-        tvDeposits.setText(amountFormat.format(deposits) + " جم");
-        tvNet.setText(amountFormat.format(net) + " جم");
+    private void showResult(ResultType resultType) {
+        if (resultType == ResultType.DEPOSITS) {
+            tvResultLabel.setText("إجمالي المبلغ اللي دخل للكارت");
+            tvResultValue.setText(formatAmount(lastDeposits));
+            tvResultValue.setTextColor(ContextCompat.getColor(this, R.color.depositColor));
+        } else if (resultType == ResultType.EXPENSES) {
+            tvResultLabel.setText("إجمالي المبلغ اللي اتصرف من الكارت");
+            tvResultValue.setText(formatAmount(lastExpenses));
+            tvResultValue.setTextColor(ContextCompat.getColor(this, R.color.expenseColor));
+        } else {
+            tvResultLabel.setText("المبلغ المتاح في الكارت حسب آخر رسالة من البنك");
+            if (lastAvailableBalance == null) {
+                tvResultValue.setText("غير متوفر");
+            } else {
+                tvResultValue.setText(formatAmount(lastAvailableBalance));
+            }
+            tvResultValue.setTextColor(ContextCompat.getColor(this, R.color.titleColor));
+        }
+
+        updateFilterButtons(resultType);
+    }
+
+    private void updateFilterButtons(ResultType selectedType) {
+        styleResultButton(btnShowDeposits, selectedType == ResultType.DEPOSITS);
+        styleResultButton(btnShowExpenses, selectedType == ResultType.EXPENSES);
+        styleResultButton(btnShowAvailable, selectedType == ResultType.AVAILABLE);
+    }
+
+    private void styleResultButton(Button button, boolean selected) {
+        int backgroundColor = ContextCompat.getColor(this, selected ? R.color.primary : R.color.buttonNeutral);
+        int textColor = ContextCompat.getColor(this, selected ? android.R.color.white : R.color.titleColor);
+        button.setBackgroundTintList(android.content.res.ColorStateList.valueOf(backgroundColor));
+        button.setTextColor(textColor);
+    }
+
+    private String formatAmount(double amount) {
+        return amountFormat.format(amount) + " جم";
+    }
+
+    private String formatAmount(Double amount) {
+        if (amount == null) {
+            return "غير متوفر";
+        }
+        return formatAmount(amount.doubleValue());
     }
 
     private enum SmsType {
         EXPENSE,
         DEPOSIT,
         UNKNOWN
+    }
+
+    private enum ResultType {
+        DEPOSITS,
+        EXPENSES,
+        AVAILABLE
     }
 }

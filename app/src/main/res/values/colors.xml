@@ -5,4 +5,5 @@
     <color name="subtitleColor">#475569</color>
     <color name="expenseColor">#B91C1C</color>
     <color name="depositColor">#15803D</color>
+    <color name="buttonNeutral">#E5E7EB</color>
 </resources>
